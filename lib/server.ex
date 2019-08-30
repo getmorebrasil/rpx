@@ -18,9 +18,9 @@ defmodule Server do
 	"""
 	@spec new(String.t(), String.t()) :: %Server{}
 	def new(name, host) do
-			{:ok, connection} = AMQP.Connection.open(host)
-			{:ok, channel} = AMQP.Channel.open(connection)
-			%Server{name: name, connection: connection, channel: channel, procedures: %{}}
+		{:ok, connection} = AMQP.Connection.open(host)
+		{:ok, channel} = AMQP.Channel.open(connection)
+		%Server{name: name, connection: connection, channel: channel, procedures: %{}}
 	end
 
 	@doc """
@@ -48,7 +48,7 @@ defmodule Server do
 
 	## Examples
 		Server.new("Sum server", "amqp://localhost:5672")
-		|> Server.add_procedure(&(&1 + &2))
+		|> Server.add_procedure(MyModule.my_function)
 		|> Server.start
 	"""
 	@spec start(%Server{}) :: none()
