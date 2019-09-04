@@ -25,3 +25,6 @@ rpc_elixir-*.tar
 /log/
 
 .elixir_ls
+
+/priv/plts/*.plt
+/priv/plts/*.plt.hash

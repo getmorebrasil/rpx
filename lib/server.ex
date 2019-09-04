@@ -1,98 +1,72 @@
 defmodule Server do
-	@moduledoc """
-	This module provides the core server functions and the server abstractions.
-	The server is a worker which will receive requests from a remote client.
-	"""
-	use AMQP
+  @moduledoc """
+  This module provides the core server functions and the server abstractions.
+  The server is a worker which will receive requests from a remote client.
+  """
 
-	@nonExistingTargetResponse quote do: %{ response: "The provided target #{target} is not implemented by this server."}
+  defstruct [:name, :connection_handler, :connection_data, :procedures]
 
-	defstruct [:name, :connection, :channel, :procedures]
+  @doc """
+  Creates a new Server struct.
 
-	@doc """
-	Creates a new Server struct.
+  # Parameters
+  	- name: String Server name. Should be unique since a RabbitMQ queue will be created for this Server.
+    - connection: Connection module which this server will use.
+    - connection_data: Metadata used by the connection module.
+  """
+  def new(name, connection, connection_data) do
+		%Server{
+			name: name,
+			connection_handler: connection,
+			connection_data: connection_data,
+			procedures: %{}
+		}
+  end
 
-	# Parameters
-		- name: String Server name. Should be unique since a RabbitMQ queue will be created for this Server.
-		- host: String URL for the RabbitMQ server.
-	"""
-	@spec new(String.t(), String.t()) :: %Server{}
-	def new(name, host) do
-		{:ok, connection} = AMQP.Connection.open(host)
-		{:ok, channel} = AMQP.Channel.open(connection)
-		%Server{name: name, connection: connection, channel: channel, procedures: %{}}
-	end
+  @doc """
+  Adds a function to some provided %Server
 
-	@doc """
-	Adds a function to some provided %Server
+  ## Parameters
+  	- server: %Server to which the function will be added.
+  	- new_procedure: Function to be added to the %Server.
 
-	## Parameters
-		- server: %Server to which the function will be added.
-		- new_procedure: Function to be added to the %Server.
+  ## Examples
+  	Server.new("Sum server", Connection.AMQP, Connection.new("amqp://localhost:5672"))
+  	|> Server.add_procedure(&some_function/1)
+  """
+  def add_procedure(server, new_procedure) do
+    func_name = Function.info(new_procedure) |> Keyword.get(:name)
 
-	## Examples
-		Server.new("Sum server", "amqp://localhost:5672")
-		|> Server.add_procedure(&(&1 + &2))
-	"""
-	@spec add_procedure(%Server{}, (... -> any)) :: %Server{}
-	def add_procedure(%Server{connection: connection, channel: channel, procedures: procedures}, new_procedure) do
-		name = Function.info(new_procedure) |> Keyword.get(:name)
-		%Server{connection: connection, channel: channel, procedures: Map.put(procedures, name, new_procedure)}
-	end
+    %Server{server | procedures: Map.put(server.procedures, func_name, new_procedure)}
+  end
 
-	@doc """
-	Starts listening with the %Server functions
+  @doc """
+  Starts listening with the %Server functions
 
-	## Parameters
-		- server: %Server to be started
+  ## Parameters
+  	- server: %Server to be started
 
-	## Examples
-		Server.new("Sum server", "amqp://localhost:5672")
-		|> Server.add_procedure(MyModule.my_function)
-		|> Server.start
-	"""
-	@spec start(%Server{}) :: none()
-	def start(server) do
-		AMQP.Queue.declare(server.channel, server.name)
-		AMQP.Basic.qos(server.channel, prefetch_count: 1)
-		AMQP.Basic.consume(server.channel, server.name)
+  ## Examples
+  	Server.new("Sum server", "amqp://localhost:5672")
+  	|> Server.add_procedure(MyModule.my_function)
+  	|> Server.start
+  """
+  def start(server) do
+    server.connection_handler.listen(server)
+    listen(server)
+  end
 
-		listen(server)
-	end
+  defp listen(server) do
+    {target, args, meta} = server.connection_handler.wait_for_message(server)
+    dispatch(server, meta, target, args)
+    listen(server)
+  end
 
-	@spec listen(%Server{}) :: none()
-	defp listen(server) do
-		receive do
-			{:basic_deliver, payload, meta} ->
-				{target, args} = Jason.decode!(payload)
-				response = dispatch(server, meta, target, args)
-
-				AMQP.Basic.publish(
-					server.channel,
-					"",
-					meta.reply_to,
-					Jason.encode!(response),
-					correlation_id: meta.correlation_id)
-				AMQP.Basic.ack(server.channel, meta.delivery_tag)
-		end
-		listen(server)
-	end
-
-	@spec dispatch(%Server{}, Meta.t, String.t(), %{}) :: none()
-	defp dispatch(server, meta, target, args) do
-		spawn(
-			fn ->
-				func = Map.get(server.procedures, target) || @nonExistingTargetResponse
-				response = func.(args)
-
-				AMQP.Basic.publish(
-					server.channel,
-					"",
-					meta.reply_to,
-					Jason.encode!(response),
-					correlation_id: meta.correlation_id)
-				AMQP.Basic.ack(server.channel, meta.delivery_tag)
-			end
-		)
-	end
+  defp dispatch(server, meta, target, args) do
+    spawn(fn ->
+      func = Map.get(server.procedures, target) || %{response: "The provided target #{target} is not implemented by this server."}
+      response = func.(args)
+      server.connection_handler.send(server.connection_data, meta, response)
+    end)
+  end
 end

@@ -7,6 +7,9 @@ defmodule RpcElixir.MixProject do
       version: "0.1.0",
       elixir: "~> 1.9",
       start_permanent: Mix.env() == :prod,
+      dialyzer: [
+        plt_file: {:no_warn, "priv/plts/dialyzer.plt"}
+      ],
       deps: deps()
     ]
   end
