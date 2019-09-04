@@ -15,12 +15,12 @@ defmodule Server do
     - connection_data: Metadata used by the connection module.
   """
   def new(name, connection, connection_data) do
-		%Server{
-			name: name,
-			connection_handler: connection,
-			connection_data: connection_data,
-			procedures: %{}
-		}
+    %Server{
+      name: name,
+      connection_handler: connection,
+      connection_data: connection_data,
+      procedures: %{}
+    }
   end
 
   @doc """
@@ -48,7 +48,7 @@ defmodule Server do
 
   ## Examples
   	Server.new("Sum server", "amqp://localhost:5672")
-  	|> Server.add_procedure(MyModule.my_function)
+  	|> Server.add_procedure(&MyModule.my_function/1)
   	|> Server.start
   """
   def start(server) do

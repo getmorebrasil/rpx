@@ -1,0 +1,24 @@
+image: elixir:1.9.1
+
+# Cache modules in between jobs
+cache:
+  paths:
+  - priv/plts
+
+before_script:
+  - mkdir -p priv/plts
+  - mix local.hex --force
+  - mix local.rebar --force
+  - mix deps.get
+
+lint:
+  script:
+  - mix credo --strict
+
+dialyzer:
+  script:
+  - mix dialyzer --halt-exit-status
+
+test:
+  script:
+  - mix test --force

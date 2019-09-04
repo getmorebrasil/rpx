@@ -6,7 +6,7 @@ defmodule StubConnection do
   @impl Connection
   def send(%{}, _meta, _message), do: nil
   @impl Connection
-  def wait_for_message(), do: nil
+  def wait_for_message, do: nil
   @impl Connection
   def listen(%{}, _name), do: nil
 end

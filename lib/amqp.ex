@@ -1,22 +1,34 @@
 defmodule Connection do
-  @doc "Creates a new connection"
+  @moduledoc """
+  Behaviour defining an interface for connections.
+  """
+
+  @doc "Creates a new connection."
   @callback new(String.t()) :: struct()
+  @doc "Sends response message back to the caller."
   @callback send(struct(), any(), any()) :: any()
+  @doc "Waits for messages from callers."
   @callback wait_for_message() :: {String.t(), %{}, %{}}
+  @doc "Starts to consume some queue or endpoint."
   @callback listen(Connection, String.t()) :: no_return()
 end
 
 defmodule Connection.AMQP do
+  @moduledoc """
+  Connection implementation for AMQP.
+  """
   @behaviour Connection
 
   defstruct [:connection, :channel]
 
+  @impl Connection
   def new(host) do
     {:ok, connection} = AMQP.Connection.open(host)
     {:ok, channel} = AMQP.Channel.open(connection)
     %Connection.AMQP{connection: connection, channel: channel}
   end
 
+  @impl Connection
   def send(%Connection.AMQP{channel: channel}, meta, message) do
     AMQP.Basic.publish(
       channel,
@@ -27,7 +39,8 @@ defmodule Connection.AMQP do
     AMQP.Basic.ack(channel, meta.delivery_tag)
   end
 
-  def wait_for_message() do
+  @impl Connection
+  def wait_for_message do
     {payload, meta} = receive do
       {:basic_deliver, payload, meta} -> {payload, meta}
     end
@@ -36,9 +49,10 @@ defmodule Connection.AMQP do
     {target, params, meta}
   end
 
+  @impl Connection
   def listen(connection, name) do
     AMQP.Queue.declare(connection.channel, name)
-		AMQP.Basic.qos(connection.channel, prefetch_count: 1)
-		AMQP.Basic.consume(connection.channel, name)
+    AMQP.Basic.qos(connection.channel, prefetch_count: 1)
+    AMQP.Basic.consume(connection.channel, name)
   end
 end
