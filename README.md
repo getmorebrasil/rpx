@@ -1,4 +1,4 @@
-# RpcElixir
+# RPX
 
 **TODO: Add description**
 

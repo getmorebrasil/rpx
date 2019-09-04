@@ -52,7 +52,7 @@ defmodule Server do
   	|> Server.start
   """
   def start(server) do
-    server.connection_handler.listen(server)
+    server.connection_handler.listen(server.connection_data, server.name)
     listen(server)
   end
 
