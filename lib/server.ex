@@ -14,6 +14,7 @@ defmodule Server do
     - connection: Connection module which this server will use.
     - connection_data: Metadata used by the connection module.
   """
+  @spec new(String.t(), Connection.t(), struct()) :: %Server{}
   def new(name, connection, connection_data) do
     %Server{
       name: name,
@@ -34,6 +35,7 @@ defmodule Server do
   	Server.new("Sum server", Connection.AMQP, Connection.new("amqp://localhost:5672"))
   	|> Server.add_procedure(&some_function/1)
   """
+	@spec add_procedure(%Server{}, (... -> any)) :: %Server{}
   def add_procedure(server, new_procedure) do
     func_name = Function.info(new_procedure) |> Keyword.get(:name)
 
@@ -57,7 +59,8 @@ defmodule Server do
   end
 
   defp listen(server) do
-    {target, args, meta} = server.connection_handler.wait_for_message(server)
+    IO.puts("Server #{server.name} listening.")
+    {target, args, meta} = server.connection_handler.wait_for_message
     dispatch(server, meta, target, args)
     listen(server)
   end

@@ -7,6 +7,7 @@ defmodule Connection.AMQP do
   defstruct [:connection, :channel]
 
   @impl Connection
+  @spec new(String.t()) :: %Connection.AMQP{}
   def new(host) do
     {:ok, connection} = AMQP.Connection.open(host)
     {:ok, channel} = AMQP.Channel.open(connection)
@@ -18,10 +19,10 @@ defmodule Connection.AMQP do
     AMQP.Basic.publish(
       channel,
       "",
-      meta.reply_to,
+      "fila_de_teste",
       Jason.encode!(message),
+      reply_to: meta.reply_to,
       correlation_id: meta.correlation_id)
-    AMQP.Basic.ack(channel, meta.delivery_tag)
   end
 
   @impl Connection
@@ -35,9 +36,16 @@ defmodule Connection.AMQP do
   end
 
   @impl Connection
+  def wait_for_message(correlation_id) do
+    receive do
+      {:basic_deliver, payload, %{correlation_id: ^correlation_id}} -> Jason.decode!(payload)
+    end
+  end
+
+  @impl Connection
   def listen(connection, name) do
     AMQP.Queue.declare(connection.channel, name)
     AMQP.Basic.qos(connection.channel, prefetch_count: 1)
-    AMQP.Basic.consume(connection.channel, name)
+    AMQP.Basic.consume(connection.channel, name, nil, no_ack: true)
   end
 end

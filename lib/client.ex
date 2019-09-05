@@ -4,27 +4,22 @@ defmodule Client do
   """
   defstruct [:name, :connection_handler, :connection_data]
 
-  def new(name, connection, connection_data) do
+  def new(name, connection_handler, connection_data) do
+    connection_handler.listen(connection_data, name <> "_callback")
     %Client{
       name: name,
-      connection_handler: connection,
+      connection_handler: connection_handler,
       connection_data: connection_data,
     }
   end
 
-  def call(client, target, args) do
+  def call(client, target, params) do
     correlation_id = :erlang.unique_integer |> :erlang.integer_to_binary |> Base.encode64
-    message = %{target: target, args: args}
+    message = %{target: target, params: params}
     meta = %{correlation_id: correlation_id, reply_to: client.name <> "_callback"}
 
     client.connection_handler.send(client.connection_data, meta, message)
 
-    Task.async(fn -> wait_for_messages(correlation_id) end)
-  end
-
-  defp wait_for_messages(correlation_id) do
-    receive do
-      {:basic_deliver, payload, %{correlation_id: ^correlation_id}} -> Jason.decode!(payload)
-    end
+    client.connection_handler.wait_for_message(correlation_id)
   end
 end

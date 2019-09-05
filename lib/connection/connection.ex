@@ -9,6 +9,8 @@ defmodule Connection do
   @callback send(struct(), any(), any()) :: any()
   @doc "Waits for messages from callers."
   @callback wait_for_message() :: {String.t(), %{}, %{}}
+  @doc "Waits for message with given correlation id."
+  @callback wait_for_message(String.t()) :: {String.t(), %{}, %{}}
   @doc "Starts to consume some queue or endpoint."
   @callback listen(Connection, String.t()) :: no_return()
 end
