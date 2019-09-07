@@ -1,21 +1,6 @@
 # RPX
 
-**TODO: Add description**
+**A simple way to write RPC Clients and Servers in Elixir**
 
-## Installation
-
-If [available in Hex](https://hex.pm/docs/publish), the package can be installed
-by adding `rpc_elixir` to your list of dependencies in `mix.exs`:
-
-```elixir
-def deps do
-  [
-    {:rpc_elixir, "~> 0.1.0"}
-  ]
-end
-```
-
-Documentation can be generated with [ExDoc](https://github.com/elixir-lang/ex_doc)
-and published on [HexDocs](https://hexdocs.pm). Once published, the docs can
-be found at [https://hexdocs.pm/rpc_elixir](https://hexdocs.pm/rpc_elixir).
+RPX allows you to easily define your RPC Servers and call its functions from a Client. Currently AMQP is the only supported connection protocol, but others might be implemented as well. The next goal of this library is to create a DSL to make Servers definition more straightforward.
 
