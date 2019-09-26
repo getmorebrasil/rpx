@@ -4,7 +4,7 @@ defmodule Connection.AMQP do
   """
   @behaviour Connection
 
-  defstruct [:connection, :channel]
+  defstruct [:connection, :channel, :queue_name]
 
   @impl Connection
   @spec new(String.t()) :: %Connection.AMQP{}
@@ -19,7 +19,7 @@ defmodule Connection.AMQP do
     AMQP.Basic.publish(
       channel,
       "",
-      "fila_de_teste",
+      meta.queue_name,
       Jason.encode!(message),
       reply_to: meta.reply_to,
       correlation_id: meta.correlation_id)
