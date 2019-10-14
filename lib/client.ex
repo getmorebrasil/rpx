@@ -18,8 +18,7 @@ defmodule Client do
     message = %{target: target, params: params}
     meta = %{correlation_id: correlation_id, reply_to: "amq.rabbitmq.reply-to", queue_name: client.name}
 
-    client.connection_handler.send(client.connection_data, meta, message)
-
-    client.connection_handler.wait_for_message(correlation_id)
+    RPX.Connection.send(meta, message)
+    RPX.Connection.wait_for_message(correlation_id)
   end
 end
