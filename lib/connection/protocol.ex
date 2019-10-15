@@ -1,4 +1,4 @@
-defmodule Connection do
+defmodule RPX.Protocol do
   @moduledoc """
   Behaviour defining an interface for connections.
   """
@@ -12,5 +12,5 @@ defmodule Connection do
   @doc "Waits for message with given correlation id."
   @callback wait_for_message(String.t()) :: {String.t(), %{}, %{}}
   @doc "Starts to consume some queue or endpoint."
-  @callback listen(Connection, String.t()) :: no_return()
+  @callback listen(Connection) :: no_return()
 end
