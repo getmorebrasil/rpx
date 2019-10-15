@@ -1,6 +1,8 @@
 defmodule RPX.Connection do
   use GenServer
 
+  # Client
+
   def send(meta, message) do
     GenServer.call(__MODULE__, {:send, meta, message})
   end
@@ -9,30 +11,30 @@ defmodule RPX.Connection do
     GenServer.call(__MODULE__, {:wait_for_message, meta})
   end
 
-  def child_spec(opts) do
-    %{
-      id: RPX.Connection,
-      start: {__MODULE__, :start_link, [opts]},
-      shutdown: 5_000,
-      restart: :permanent,
-      type: :worker,
-    }
-  end
+  # Server (callbacks)
 
-  def start_link(%{host: host, connection_handler: connection_handler}) do
-    config = connection_handler.new(host)
+  def start_link(config) do
     GenServer.start_link(__MODULE__, config, name: __MODULE__)
   end
 
-  def init(state), do: {:ok, state}
+  def init(%{host: host, connection_handler: connection_handler}) do
+    config = %{
+      connection_handler: connection_handler,
+      connection_data: connection_handler.new(host)
+    }
+
+    {:ok, config}
+  end
 
   def handle_call({:send, meta, message}, _from, config) do
     config.connection_handler.send(config.connection_data, meta, message)
+    
+    {:reply, :ok, config}
   end
 
   def handle_call({:wait_for_message, meta}, _from, config) do
-    config.connection_handler.send(config.connection_data, meta)
-
-    Task.async(fn -> config.connection_handler.wait_for_message(meta) end)
+    res = Task.async(fn -> config.connection_handler.wait_for_message(meta) end)
+    
+    {:reply, res, config}
   end
 end

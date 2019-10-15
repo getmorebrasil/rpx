@@ -1,21 +1,24 @@
-defmodule Connection.AMQP do
+defmodule RPX.Connection.AMQP do
   @moduledoc """
   Connection implementation for AMQP.
   """
-  @behaviour Connection
+  @behaviour RPX.Protocol
 
-  defstruct [:connection, :channel, :queue_name]
+  defstruct [:connection, :channel]
 
-  @impl Connection
-  @spec new(String.t()) :: %Connection.AMQP{}
+  @impl RPX.Protocol
+  @spec new(String.t()) :: %RPX.Connection.AMQP{}
   def new(host) do
     {:ok, connection} = AMQP.Connection.open(host)
     {:ok, channel} = AMQP.Channel.open(connection)
-    %Connection.AMQP{connection: connection, channel: channel}
+    config = %RPX.Connection.AMQP{connection: connection, channel: channel}
+
+    listen(config)
+    config
   end
 
-  @impl Connection
-  def send(%Connection.AMQP{channel: channel}, meta, message) do
+  @impl RPX.Protocol
+  def send(%RPX.Connection.AMQP{channel: channel}, meta, message) do
     AMQP.Basic.publish(
       channel,
       "",
@@ -25,7 +28,7 @@ defmodule Connection.AMQP do
       correlation_id: meta.correlation_id)
   end
 
-  @impl Connection
+  @impl RPX.Protocol
   def wait_for_message do
     {payload, meta} = receive do
       {:basic_deliver, payload, meta} -> {payload, meta}
@@ -35,17 +38,17 @@ defmodule Connection.AMQP do
     {target, params, meta}
   end
 
-  @impl Connection
+  @impl RPX.Protocol
   def wait_for_message(correlation_id) do
     receive do
       {:basic_deliver, payload, %{correlation_id: ^correlation_id}} -> Jason.decode!(payload)
     end
   end
 
-  @impl Connection
-  def listen(connection, name) do
-    AMQP.Queue.declare(connection.channel, name)
+  @impl RPX.Protocol
+  def listen(connection) do
+    AMQP.Queue.declare(connection.channel, "amq.rabbitmq.reply-to")
     AMQP.Basic.qos(connection.channel, prefetch_count: 1)
-    AMQP.Basic.consume(connection.channel, name, nil, no_ack: true)
+    AMQP.Basic.consume(connection.channel, "amq.rabbitmq.reply-to", nil, no_ack: true)
   end
 end
