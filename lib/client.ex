@@ -12,7 +12,6 @@ defmodule RPX.Client do
     message = %{target: target, params: params}
     meta = %{correlation_id: correlation_id, reply_to: "amq.rabbitmq.reply-to", queue_name: name}
 
-    RPX.Connection.send(meta, message)
-    #RPX.Connection.wait_for_message(correlation_id)
+    Task.async(fn -> RPX.Connection.call(meta, message) end)
   end
 end

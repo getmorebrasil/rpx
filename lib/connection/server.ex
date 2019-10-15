@@ -3,38 +3,45 @@ defmodule RPX.Connection do
 
   # Client
 
-  def send(meta, message) do
+  def call(meta, message) do
     GenServer.call(__MODULE__, {:send, meta, message})
-  end
 
-  def wait_for_message(meta) do
-    GenServer.call(__MODULE__, {:wait_for_message, meta})
+    receive do
+      payload -> payload
+    end
   end
 
   # Server (callbacks)
 
-  def start_link(config) do
-    GenServer.start_link(__MODULE__, config, name: __MODULE__)
+  def start_link(state) do
+    GenServer.start_link(__MODULE__, state, name: __MODULE__)
   end
 
   def init(%{host: host, connection_handler: connection_handler}) do
-    config = %{
+    state = %{
       connection_handler: connection_handler,
       connection_data: connection_handler.new(host)
     }
 
-    {:ok, config}
+    {:ok, state}
   end
 
-  def handle_call({:send, meta, message}, _from, config) do
-    config.connection_handler.send(config.connection_data, meta, message)
-    
-    {:reply, :ok, config}
+  def handle_call({:send, meta, message}, {pid, _}, state) do
+    IO.inspect(Map.put(meta, :correlation_id, &(pid <> "," <> &1)) )
+    state.connection_handler.send(state.connection_data, 
+      Map.update!(meta, :correlation_id, &(pid <> "," <> &1)),
+      message)
+
+    {:reply, :ok, state}
   end
 
-  def handle_call({:wait_for_message, meta}, _from, config) do
-    res = Task.async(fn -> config.connection_handler.wait_for_message(meta) end)
+  def handle_info(msg, state) do
+    IO.inspect(msg)
+    #{:basic_deliver, payload, %{correlation_id: correlation_id}} = msg
+    #[pid, _] = String.split(correlation_id, ",")
     
-    {:reply, res, config}
+    #Kernel.send(pid, payload)
+
+    {:noreply, state}
   end
 end
