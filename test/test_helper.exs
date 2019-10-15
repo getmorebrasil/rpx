@@ -1,13 +1,15 @@
-defmodule MockConnection do
-  @behaviour Connection
+defmodule MockProtocol do
+  @behaviour RPX.Protocol
 
-  @impl Connection
+  @impl RPX.Protocol
   def new(_host), do: %{}
-  @impl Connection
+  @impl RPX.Protocol
   def send(%{}, _meta, _message), do: nil
-  @impl Connection
+  @impl RPX.Protocol
   def wait_for_message, do: nil
-  @impl Connection
+  @impl RPX.Protocol
+  def wait_for_message(_), do: nil
+  @impl RPX.Protocol
   def listen(%{}, _name), do: nil
 end
 
