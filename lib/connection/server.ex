@@ -17,7 +17,9 @@ defmodule RPX.Connection do
     GenServer.start_link(__MODULE__, state, name: __MODULE__)
   end
 
-  def init(%{host: host, connection_handler: connection_handler}) do
+  def init(_opts) do
+    [host: host, connection_handler: connection_handler] = Application.get_env(:rpx, __MODULE__)
+
     state = %{
       connection_handler: connection_handler,
       connection_data: connection_handler.new(host)
