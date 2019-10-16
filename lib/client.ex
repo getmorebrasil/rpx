@@ -5,7 +5,16 @@ defmodule RPX.Client do
   defstruct [:name, :connection_handler, :connection_data]
 
   @doc """
+  Calls some function from a remote worker returnig a Task representing its
+  response.
 
+  ## Parameters
+    - name: Name of the queue which the remote worker is listening to.
+    - target: Worker function name to be called.
+    - params: Arguments to be provided to the target function.
+  ## Examples
+      iex> RPX.Client.call("some_worker_queue", "sum", %{a: 1, b: 2}) |> Task.await
+      %{"response" => 3}
   """
   @spec call(String.t(), String.t(), map()) :: %Task{}
   def call(name, target, params) do
