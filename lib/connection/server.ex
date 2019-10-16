@@ -27,21 +27,37 @@ defmodule RPX.Connection do
   end
 
   def handle_call({:send, meta, message}, {pid, _}, state) do
-    IO.inspect(Map.put(meta, :correlation_id, &(pid <> "," <> &1)) )
-    state.connection_handler.send(state.connection_data, 
-      Map.update!(meta, :correlation_id, &(pid <> "," <> &1)),
+    state.connection_handler.send(state.connection_data,
+      Map.update!(meta, :correlation_id, &(serialize(pid) <> "," <> &1)),
       message)
 
     {:reply, :ok, state}
   end
 
-  def handle_info(msg, state) do
-    IO.inspect(msg)
-    #{:basic_deliver, payload, %{correlation_id: correlation_id}} = msg
-    #[pid, _] = String.split(correlation_id, ",")
-    
-    #Kernel.send(pid, payload)
+  def handle_info({:basic_deliver, payload, %{correlation_id: correlation_id}}, state) do
+    [pid, _] = String.split(correlation_id, ",")
+
+    pid |> deserialize |> send(payload)
 
     {:noreply, state}
+  end
+
+  def handle_info(msg, state) do
+    IO.inspect(msg)
+    {:noreply, state}
+  end
+
+  @spec serialize(term) :: binary
+  defp serialize(term) do
+    term
+    |> :erlang.term_to_binary
+    |> Base.url_encode64
+  end
+
+  @spec deserialize(binary) :: term
+  defp deserialize(str) when is_binary(str) do
+    str
+    |> Base.url_decode64!
+    |> :erlang.binary_to_term
   end
 end
