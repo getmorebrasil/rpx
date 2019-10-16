@@ -7,11 +7,12 @@ defmodule RPX.Client do
   @doc """
 
   """
+  @spec call(String.t(), String.t(), map()) :: %Task{}
   def call(name, target, params) do
     correlation_id = :erlang.unique_integer |> :erlang.integer_to_binary |> Base.encode64
     message = %{target: target, params: params}
     meta = %{correlation_id: correlation_id, reply_to: "amq.rabbitmq.reply-to", queue_name: name}
 
-    Task.async(fn -> RPX.Connection.call(meta, message) end)
+    Task.async(fn -> RPX.Connection.call(meta, message) |> Jason.decode! end)
   end
 end
