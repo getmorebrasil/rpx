@@ -1,14 +1,23 @@
-defmodule RPX.Connection do
+defmodule RPX.AMQP.Client do
   use GenServer
+  
+  @reply_to "amq.rabbitmq.reply-to"
+  
+  defstruct [:connection, :channel]
 
   # Client
 
-  def call(meta, message) do
-    GenServer.call(__MODULE__, {:send, meta, message})
-
-    receive do
-      payload -> payload
-    end
+  def call(queue_name, target, params) do
+    Task.async(fn ->
+      correlation_id = :erlang.unique_integer |> :erlang.integer_to_binary |> Base.encode64
+      message = %{target: target, params: params}
+      meta = %{correlation_id: correlation_id, reply_to: @reply_to, queue_name: queue_name}
+      
+      GenServer.call(__MODULE__, {:send, meta, message})
+      receive do
+        payload -> Jason.decode!(payload)
+      end
+    end)
   end
 
   # Server (callbacks)
@@ -18,20 +27,21 @@ defmodule RPX.Connection do
   end
 
   def init(_opts) do
-    [host: host, connection_handler: connection_handler] = Application.get_env(:rpx, __MODULE__)
-
-    state = %{
-      connection_handler: connection_handler,
-      connection_data: connection_handler.new(host)
-    }
+    [host: host] = Application.get_env(:rpx, __MODULE__)
+    config = RPX.AMQP.new(host)
+    RPX.AMQP.listen(config, @reply_to)
+    
+    state = %{config: config}
 
     {:ok, state}
   end
 
   def handle_call({:send, meta, message}, {pid, _}, state) do
-    state.connection_handler.send(state.connection_data,
+    RPX.AMQP.send(
+      state.config,
       Map.update!(meta, :correlation_id, &(serialize(pid) <> "," <> &1)),
-      message)
+      IO.inspect(message)
+    )
 
     {:reply, :ok, state}
   end
@@ -45,7 +55,6 @@ defmodule RPX.Connection do
   end
 
   def handle_info(msg, state) do
-    IO.inspect(msg)
     {:noreply, state}
   end
 
