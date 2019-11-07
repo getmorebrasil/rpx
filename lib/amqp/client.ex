@@ -1,8 +1,9 @@
 defmodule RPX.AMQP.Client do
+  @moduledoc false
   use GenServer
-  
+
   @reply_to "amq.rabbitmq.reply-to"
-  
+
   defstruct [:connection, :channel]
 
   # Client
@@ -32,7 +33,7 @@ defmodule RPX.AMQP.Client do
     [host: host] = Application.get_env(:rpx, __MODULE__)
     config = RPX.AMQP.new(host)
     RPX.AMQP.listen(config, @reply_to)
-    
+
     state = %{config: config}
 
     {:ok, state}

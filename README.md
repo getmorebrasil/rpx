@@ -9,15 +9,14 @@ RPX allows you to easily define your RPC Servers and call its functions from a C
 
 1. Put your RPX config inside config.exs
 ```
-config :rpx, RPX.Connection,
+config :rpx, RPX.AMQP.Client,
   host: "amqp://localhost:5672",
-  connection_handler: RPX.Connection.AMQP
 ```
 
 2. Start the connection with your Supervisor
 ```
 children = [
-    RPX.Connection
+    RPX.AMPQ.Client
 ]
 opts = [strategy: :one_for_one, name: Test.Supervisor]
 

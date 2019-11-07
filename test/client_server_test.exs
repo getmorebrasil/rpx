@@ -3,9 +3,8 @@ defmodule ClientServerTest do
   doctest RPX.AMQP.Server
   doctest RPX.AMQP.Client
 
-  alias RPX.AMQP.Server
   alias RPX.AMQP.Client
-
+  alias RPX.AMQP.Server
 
   describe "call" do
     test "Client should be able to call Server" do
@@ -14,7 +13,7 @@ defmodule ClientServerTest do
         {Server, worker: DummyWorker, queue_name: queue_name},
         Client
       ]
-      
+
       Supervisor.start_link(children, strategy: :one_for_one, name: Test.Supervisor)
 
       assert Task.await(Client.call(queue_name, "foo", %{})) == DummyWorker.foo(%{})
