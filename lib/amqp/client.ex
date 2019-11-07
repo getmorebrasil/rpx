@@ -8,16 +8,18 @@ defmodule RPX.AMQP.Client do
   # Client
 
   def call(queue_name, target, params) do
-    Task.async(fn ->
-      correlation_id = :erlang.unique_integer |> :erlang.integer_to_binary |> Base.encode64
-      message = %{target: target, params: params}
-      meta = %{correlation_id: correlation_id, reply_to: @reply_to, queue_name: queue_name}
-      
-      GenServer.call(__MODULE__, {:send, meta, message})
-      receive do
-        payload -> Jason.decode!(payload)
+    Task.async(
+      fn ->
+        correlation_id = :erlang.unique_integer |> :erlang.integer_to_binary |> Base.encode64
+        message = %{target: target, params: params}
+        meta = %{correlation_id: correlation_id, reply_to: @reply_to, queue_name: queue_name}
+
+        GenServer.call(__MODULE__, {:send, meta, message})
+        receive do
+          payload -> Jason.decode!(payload)
+        end
       end
-    end)
+    )
   end
 
   # Server (callbacks)
@@ -40,7 +42,7 @@ defmodule RPX.AMQP.Client do
     RPX.AMQP.send(
       state.config,
       Map.update!(meta, :correlation_id, &(serialize(pid) <> "," <> &1)),
-      IO.inspect(message)
+      message
     )
 
     {:reply, :ok, state}

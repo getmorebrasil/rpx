@@ -22,17 +22,20 @@ defmodule RPX.AMQP.Server do
   end
 
   def handle_info({:basic_deliver, payload, meta}, state) do
-    {target, params} = Jason.decode!(payload)
+    %{"target" => target, "params" => params} = Jason.decode!(payload)
 
-    Task.async(fn ->
-      res = apply(state.worker, target, [params])
-      RPX.AMQP.send(state.config, meta, res)
-    end)
+    Task.async(
+      fn ->
+        res = apply(state.worker, String.to_atom(target), [params])
+        RPX.AMQP.send(state.config, Map.put(meta, :queue_name, meta.reply_to), res)
+      end
+    )
 
     {:noreply, state}
   end
 
-  def handle_info(msg, state) do
+  def handle_info({:basic_consume_ok, %{consumer_tag: _consumer_tag}}, state) do
+    IO.puts("Server listening to calls")
     {:noreply, state}
   end
 end

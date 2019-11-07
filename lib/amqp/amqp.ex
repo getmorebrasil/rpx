@@ -17,7 +17,6 @@ defmodule RPX.AMQP do
     AMQP.Basic.consume(config.channel, queue_name, nil, no_ack: true)
   end
 
-  @spec listen(%RPX.AMQP{}, String.t()) :: any()
   def send(%RPX.AMQP{channel: channel}, meta, message) do
     AMQP.Basic.publish(
       channel,
