@@ -1,10 +1,7 @@
 defmodule Example.Server do
-
-  def sum(%{a: a, b: b}), do: a + b
+  alias RPX.AMQP.Server
 
   def start() do
-    Server.new("example", Connection.AMQP, Connection.AMQP.new("amqp://localhost:5672"))
-    |> Server.add_procedure(&sum/1)
-    |> Server.start
+    {:ok, config} = Server.init(worker: DummyWorker, queue_name: "rpx_test")
   end
 end
