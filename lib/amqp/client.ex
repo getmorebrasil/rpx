@@ -9,18 +9,17 @@ defmodule RPX.AMQP.Client do
   # Client
 
   def call(queue_name, target, params) do
-    Task.async(
-      fn ->
-        correlation_id = :erlang.unique_integer |> :erlang.integer_to_binary |> Base.encode64
-        message = %{target: target, params: params}
-        meta = %{correlation_id: correlation_id, reply_to: @reply_to, queue_name: queue_name}
+    Task.async(fn ->
+      correlation_id = :erlang.unique_integer() |> :erlang.integer_to_binary() |> Base.encode64()
+      message = %{target: target, params: params}
+      meta = %{correlation_id: correlation_id, reply_to: @reply_to, queue_name: queue_name}
 
-        GenServer.call(__MODULE__, {:send, meta, message})
-        receive do
-          payload -> Jason.decode!(payload)
-        end
+      GenServer.call(__MODULE__, {:send, meta, message})
+
+      receive do
+        payload -> Jason.decode!(payload)
       end
-    )
+    end)
   end
 
   # Server (callbacks)
@@ -57,21 +56,21 @@ defmodule RPX.AMQP.Client do
     {:noreply, state}
   end
 
-  def handle_info(msg, state) do
+  def handle_info(_msg, state) do
     {:noreply, state}
   end
 
   @spec serialize(term) :: binary
   defp serialize(term) do
     term
-    |> :erlang.term_to_binary
-    |> Base.url_encode64
+    |> :erlang.term_to_binary()
+    |> Base.url_encode64()
   end
 
   @spec deserialize(binary) :: term
   defp deserialize(str) when is_binary(str) do
     str
-    |> Base.url_decode64!
-    |> :erlang.binary_to_term
+    |> Base.url_decode64!()
+    |> :erlang.binary_to_term()
   end
 end

@@ -16,7 +16,7 @@ defmodule ClientTest do
       meta = %{correlation_id: "123", queue_name: "rpx_test", reply_to: "amq.rabbitmq.reply-to"}
 
       assert Client.handle_call({:send, meta, %{target: "abc", params: []}}, {self(), {}}, state) ==
-             {:reply, :ok, state}
+               {:reply, :ok, state}
     end
   end
 end
